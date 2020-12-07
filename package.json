@@ -1,5 +1,5 @@
 {
-  "name": "osgreid",
+  "name": "osgrid-server",
   "version": "1.0.0",
   "description": "OSGB to lat,lng conversion",
   "main": "index.js",

@@ -1,6 +1,7 @@
-FROM node:15.3.0
+FROM node:12.15.0
 WORKDIR /usr/src/app
 COPY package*.json ./
+RUN npm --version && node --version
 RUN npm install
 COPY . .
 EXPOSE 9090
