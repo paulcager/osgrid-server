@@ -5,7 +5,7 @@ grid references and latitude / longitude.
 
 ## Usage
 
-The easiest way to avoid environmental or Node versioning problems is to start the server using Docker:
+The easiest way is to start the server using Docker:
 
     docker run -d --rm --name osgrid-server -p 9090:9090 paulcager/osgrid-server
 
