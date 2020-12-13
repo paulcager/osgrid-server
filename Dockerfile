@@ -1,9 +1,11 @@
-FROM node:12.15.0
-WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm --version && node --version
-RUN npm install
-COPY . .
+FROM paulcager/go-base:latest
+
 EXPOSE 9090
-CMD ["node", "-r", "esm", "index.js" ]
+WORKDIR /go/src/osgrid-server
+
+COPY go.mod *.go ./
+RUN go install -v ./... && sha256sum /go/bin/osgrid-server
+
+CMD [ "/go/bin/osgrid-server" ]
+
 
