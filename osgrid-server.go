@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/paulcager/go-http-middleware"
 	"github.com/paulcager/osgridref"
 	flag "github.com/spf13/pflag"
 )
@@ -40,7 +40,7 @@ type Reply struct {
 }
 
 func makeHTTPServer(listenPort string) *http.Server {
-	http.Handle("/"+apiVersion+"/gridref/", makeCachingHandler(1*time.Hour, http.HandlerFunc(
+	http.Handle("/"+apiVersion+"/gridref/", middleware.MakeCachingHandler(1*time.Hour, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			gridRefStr := r.URL.Path[len("/"+apiVersion+"/gridref/"):]
 			gridRef, err := osgridref.ParseOsGridRef(gridRefStr)
@@ -53,7 +53,7 @@ func makeHTTPServer(listenPort string) *http.Server {
 			handle(w, r, gridRef, lat, lon)
 		})))
 
-	http.Handle("/"+apiVersion+"/latlon/", makeCachingHandler(1*time.Hour, http.HandlerFunc(
+	http.Handle("/"+apiVersion+"/latlon/", middleware.MakeCachingHandler(1*time.Hour, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			latLonStr := r.URL.Path[len("/"+apiVersion+"/latlon/"):]
 			latLon, err := osgridref.ParseLatLon(latLonStr, 0, osgridref.WGS84)
@@ -75,7 +75,7 @@ func makeHTTPServer(listenPort string) *http.Server {
 		ReadHeaderTimeout: 20 * time.Second,
 		WriteTimeout:      2 * time.Minute,
 		IdleTimeout:       10 * time.Minute,
-		Handler:           makeLoggingHandler(http.DefaultServeMux),
+		Handler:           middleware.MakeLoggingHandler(http.DefaultServeMux),
 		Addr:              listenPort,
 	}
 
@@ -104,31 +104,4 @@ func handle(w http.ResponseWriter, _ *http.Request, ref osgridref.OsGridRef, lat
 		log.Printf("Failed to write response: %s", err)
 		w.WriteHeader(http.StatusBadGateway)
 	}
-}
-
-func makeCachingHandler(age time.Duration, h http.Handler) http.Handler {
-	ageSeconds := int64(math.Round(age.Seconds()))
-	if ageSeconds <= 0 {
-		return h
-	}
-
-	header := fmt.Sprintf("public,max-age=%d", ageSeconds)
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Cache-Control", header)
-			h.ServeHTTP(w, r)
-		})
-}
-
-func makeLoggingHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			h.ServeHTTP(w, r)
-			end := time.Now()
-
-			uri := r.URL.String()
-			method := r.Method
-			fmt.Printf("%s %s %s %d\n", method, uri, r.RemoteAddr, end.Sub(start).Milliseconds())
-		})
 }
